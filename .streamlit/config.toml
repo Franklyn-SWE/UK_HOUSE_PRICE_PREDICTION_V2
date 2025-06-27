@@ -1,0 +1,7 @@
+[theme]
+base = "dark"
+primaryColor = "#00BFFF"  # Sky blue buttons
+backgroundColor = "#0E1117"  # Deep navy background
+secondaryBackgroundColor = "#262730"  # Card / widget background
+textColor = "#FAFAFA"  # Light text for readability
+font = "sans serif"
