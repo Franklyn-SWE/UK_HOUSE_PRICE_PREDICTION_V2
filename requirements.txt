@@ -1,0 +1,7 @@
+streamlit
+pandas
+scikit-learn
+dill
+joblib
+
+dill==0.3.8
