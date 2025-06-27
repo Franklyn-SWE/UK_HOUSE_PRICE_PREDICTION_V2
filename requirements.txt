@@ -1,7 +1,10 @@
-streamlit
-pandas
-scikit-learn
-dill
-joblib
-
+streamlit==1.33.0
+pandas==1.5.3
+scikit-learn==1.2.2
 dill==0.3.8
+joblib==1.3.2
+numpy==1.24.4
+scipy==1.11.2
+catboost==1.2
+category-encoders==2.6.2
+statsmodels==0.13.5

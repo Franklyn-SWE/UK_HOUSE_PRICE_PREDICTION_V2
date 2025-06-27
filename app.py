@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import dill
+import sklearn
 
 # Path to the dataset
 DATA_PATH = "data/UK_House_Price_Prediction_dataset_2015_to_2024.csv"
