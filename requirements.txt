@@ -1,3 +1,15 @@
+# core
+scipy==1.11.2
+pandas==1.5.3
+scikit-learn==1.3.2
+#catboost==1.2  # If you still need catboost; might require extra build deps
+
+# cython pinned down to known working version
+Cython==0.29.35
+
+# PyYAML pinned to a stable version
+PyYAML==6.0
+# others 
 altair==5.5.0
 attrs==25.3.0
 blinker==1.9.0
