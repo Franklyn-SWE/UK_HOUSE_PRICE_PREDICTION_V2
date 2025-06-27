@@ -3,9 +3,8 @@ venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
 # Distribution / packaging
 .Python
@@ -45,31 +44,23 @@ coverage.xml
 .hypothesis/
 
 # Jupyter Notebook checkpoints
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
 # VS Code settings folder
 .vscode/
 
-# MacOS files
+# OS files
 .DS_Store
-
-# Windows thumbnail cache
 Thumbs.db
-# Ignore Python virtual environment
-venv/
 
-# Byte-compiled / cache files
-__pycache__/
-*.py[cod]
-*$py.class
+# Environment variables file
+.env
 
 # Ignore model and large binaries
 *.pkl
 *.pyd
 *.h5
 
-# System files
-.DS_Store
+# Log files
+*.log
 
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
