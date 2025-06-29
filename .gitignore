@@ -57,10 +57,13 @@ Thumbs.db
 .env
 
 # Ignore model and large binaries
-.pkl
+
 *.pyd
 *.h5
 
 # Log files
 *.log
 
+# pipeline 
+*.pkl
+!full_pipeline_and_model.pkl
