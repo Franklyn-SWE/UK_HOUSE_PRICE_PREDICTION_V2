@@ -14,6 +14,7 @@ def load_data():
 @st.cache_resource
 def load_pipeline():
     import os
+    import sys
     import subprocess
     
     model_path = 'full_pipeline_and_model.pkl'
@@ -24,15 +25,18 @@ def load_pipeline():
         st.info("Training UK House Price Prediction Model v1.1...")
         
         try:
+            # Use sys.executable to ensure we use the same Python interpreter
             result = subprocess.run(
-                ['python', 'training/train.py'],
+                [sys.executable, 'training/train.py'],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                env=os.environ.copy()  # Pass the environment variables
             )
             st.success("✅ Model trained successfully!")
         except subprocess.CalledProcessError as e:
-            st.error(f"❌ Model training failed: {e.stderr}")
+            st.error(f"❌ Model training failed!")
+            st.error(f"Error output: {e.stderr[:500]}")  # Show first 500 chars
             raise
     
     # Load the model
