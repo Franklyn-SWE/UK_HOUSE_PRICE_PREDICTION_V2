@@ -1,0 +1,5 @@
+#!/bin/bash
+# Build model on deployment
+echo "Training UK House Price Prediction Model v1.1..."
+python training/train.py
+echo "Model trained successfully!"
