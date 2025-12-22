@@ -13,7 +13,30 @@ def load_data():
 
 @st.cache_resource
 def load_pipeline():
-    with open('full_pipeline_and_model.pkl', 'rb') as f:
+    import os
+    import subprocess
+    
+    model_path = 'full_pipeline_and_model.pkl'
+    
+    # If model doesn't exist, train it
+    if not os.path.exists(model_path):
+        st.warning("⏳ Model not found. Training now (this takes ~5-6 minutes)...")
+        st.info("Training UK House Price Prediction Model v1.1...")
+        
+        try:
+            result = subprocess.run(
+                ['python', 'training/train.py'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            st.success("✅ Model trained successfully!")
+        except subprocess.CalledProcessError as e:
+            st.error(f"❌ Model training failed: {e.stderr}")
+            raise
+    
+    # Load the model
+    with open(model_path, 'rb') as f:
         return dill.load(f)
 
 # Load data and pipeline
