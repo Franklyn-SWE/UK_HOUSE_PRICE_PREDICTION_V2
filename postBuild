@@ -1,5 +1,31 @@
 #!/bin/bash
-# Build model on deployment
-echo "Training UK House Price Prediction Model v1.1..."
-python training/train.py
-echo "Model trained successfully!"
+set -e  # Exit on error
+
+echo "======================================================================"
+echo "UK House Price Prediction Model - Deployment Build"
+echo "======================================================================"
+echo ""
+
+# Check if model already exists (from cache)
+if [ -f "full_pipeline_and_model.pkl" ]; then
+    echo "✅ Model file found in cache, skipping training..."
+    exit 0
+fi
+
+echo "Training model (this takes ~5-6 minutes)..."
+echo ""
+
+# Train with error handling
+if python training/train.py; then
+    echo ""
+    echo "======================================================================"
+    echo "✅ Model trained successfully!"
+    echo "======================================================================"
+    exit 0
+else
+    echo ""
+    echo "======================================================================"
+    echo "❌ Model training failed!"
+    echo "======================================================================"
+    exit 1
+fi
