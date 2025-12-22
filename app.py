@@ -28,6 +28,50 @@ def add_date_features(df: pd.DataFrame) -> pd.DataFrame:
     df["sale_quarter"] = df["date"].dt.quarter
     df["sale_dayofweek"] = df["date"].dt.dayofweek
     df["sale_is_month_end"] = df["date"].dt.is_month_end.astype(int)
+    df["years_since_2015"] = df["sale_year"] - 2015  # Linear time trend
+    return df
+
+
+def add_postcode_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Extract hierarchical postcode information"""
+    df = df.copy()
+    df["postcode"] = df["postcode"].astype(str).str.upper().str.strip()
+    
+    # Extract postcode area (e.g., "SW1A" from "SW1A 1AA")
+    df["postcode_area"] = df["postcode"].str.split().str[0]
+    
+    # Extract postcode district (e.g., "SW" from "SW1A 1AA")
+    df["postcode_district"] = df["postcode"].str.extract(r'^([A-Z]+)', expand=False)
+    
+    return df
+
+
+def add_target_encoding_inference(input_df: pd.DataFrame, encoding_map: dict, 
+                                  train_mean: float) -> pd.DataFrame:
+    """Add target-encoded features during inference"""
+    df = input_df.copy()
+    
+    # CRITICAL: encoding_map already contains log-transformed values
+    # Apply encoding, using log-transformed train mean as fallback
+    train_mean_log = np.log1p(train_mean)
+    
+    # NOTE: postcode_mean_price removed to prevent overfitting
+    df["town_mean_price"] = df["town"].map(
+        encoding_map.get("town", {})
+    ).fillna(train_mean_log)
+    
+    df["district_mean_price"] = df["district"].map(
+        encoding_map.get("district", {})
+    ).fillna(train_mean_log)
+    
+    df["county_mean_price"] = df["county"].map(
+        encoding_map.get("county", {})
+    ).fillna(train_mean_log)
+    
+    df["property_type_mean_price"] = df["property_type"].map(
+        encoding_map.get("property_type", {})
+    ).fillna(train_mean_log)
+    
     return df
 
 
@@ -35,9 +79,25 @@ def predict_with_artifact(input_df: pd.DataFrame, artifact: dict) -> float:
     feature_config = artifact["feature_config"]
     model = artifact["model"]
     target_transform = feature_config.get("target_transform") or artifact.get("target_transform")
+    encoding_map = artifact.get("encoding_map", {})
+    
+    # Add all feature transformations
     df_features = add_date_features(input_df)
+    df_features = add_postcode_features(df_features)
+    
+    # Add target encoding if available
+    if encoding_map:
+        train_mean = 240000  # Fallback value
+        df_features = add_target_encoding_inference(df_features, encoding_map, train_mean)
+    
+    # Prepare text features
+    for column in ["street", "locality", "town", "district", "county"]:
+        if column in df_features.columns:
+            df_features[column] = df_features[column].fillna("UNKNOWN").astype(str).str.strip().str.upper()
+    
     X_input = df_features[feature_config["feature_columns"]]
     prediction_log = model.predict(X_input)
+    
     if target_transform == "log1p":
         prediction = np.expm1(prediction_log)
     else:

@@ -1,6 +1,6 @@
 # core
 # Core dependencies
-pandas==1.5.3
+pandas==2.0.3
 numpy==1.26.4
 #scipy==1.10.1
 scipy==1.11.4
@@ -9,7 +9,7 @@ statsmodels==0.14.4
 
 # ML and encoding
 category-encoders==2.6.2
-catboost==1.2  
+catboost==1.2.7  
 
 # Streamlit and visualization
 streamlit==1.33.0
@@ -22,8 +22,8 @@ graphviz==0.21
 # Utilities
 joblib==1.3.2
 dill==0.3.8
-Cython==0.29.35
-PyYAML==6.0
+Cython==3.0.11
+PyYAML==6.0.2
 requests==2.32.4
 
 # Others

@@ -64,6 +64,8 @@ Thumbs.db
 # Log files
 *.log
 
-# pipeline 
+# Model files (too large for GitHub)
 *.pkl
-!full_pipeline_and_model.pkl
+
+# CatBoost training info
+catboost_info/
