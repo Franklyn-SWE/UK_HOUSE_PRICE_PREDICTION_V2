@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import dill
+import numpy as np
 import sklearn
 
 # Path to the dataset
@@ -19,10 +20,35 @@ def load_pipeline():
 df = load_data()
 pipeline = load_pipeline()
 
-date_extractor = pipeline['date_extractor']
-target_encoder = pipeline['target_encoder']
-preprocessor = pipeline['preprocessor']
-model = pipeline['model']
+def add_date_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["sale_year"] = df["date"].dt.year
+    df["sale_month"] = df["date"].dt.month
+    df["sale_quarter"] = df["date"].dt.quarter
+    df["sale_dayofweek"] = df["date"].dt.dayofweek
+    df["sale_is_month_end"] = df["date"].dt.is_month_end.astype(int)
+    return df
+
+
+def predict_with_artifact(input_df: pd.DataFrame, artifact: dict) -> float:
+    feature_config = artifact["feature_config"]
+    model = artifact["model"]
+    target_transform = feature_config.get("target_transform") or artifact.get("target_transform")
+    df_features = add_date_features(input_df)
+    X_input = df_features[feature_config["feature_columns"]]
+    prediction_log = model.predict(X_input)
+    if target_transform == "log1p":
+        prediction = np.expm1(prediction_log)
+    else:
+        prediction = prediction_log
+    return float(prediction[0])
+
+
+date_extractor = pipeline.get('date_extractor')
+target_encoder = pipeline.get('target_encoder')
+preprocessor = pipeline.get('preprocessor')
+model = pipeline.get('model')
 
 PROPERTY_TYPES = {
     'D': 'Detached',
@@ -94,16 +120,21 @@ if submit:
                 'postcode': postcode.upper().strip()
             }])
 
-            df_date = date_extractor.transform(input_df)
-            df_te = target_encoder.transform(df_date[target_encoder.cols])
-            X_input = pd.concat([
-                df_date.drop(columns=target_encoder.cols + ['date']),
-                df_te
-            ], axis=1)
-            X_preprocessed = preprocessor.transform(X_input)
-            prediction = model.predict(X_preprocessed)
+            if "feature_config" in pipeline:
+                prediction_value = predict_with_artifact(input_df, pipeline)
+            else:
+                df_date = date_extractor.transform(input_df)
+                df_te = target_encoder.transform(df_date[target_encoder.cols])
+                X_input = pd.concat([
+                    df_date.drop(columns=target_encoder.cols + ['date']),
+                    df_te
+                ], axis=1)
+                X_preprocessed = preprocessor.transform(X_input)
+                prediction_value = model.predict(X_preprocessed)[0]
+                if pipeline.get("target_transform") == "log1p":
+                    prediction_value = np.expm1(prediction_value)
 
-            st.success(f"🏷️ Predicted House Price: **£{prediction[0]:,.2f}**")
+            st.success(f"🏷️ Predicted House Price: **£{prediction_value:,.2f}**")
         except Exception as e:
             st.error(f"⚠️ Error during prediction: {e}")
 
