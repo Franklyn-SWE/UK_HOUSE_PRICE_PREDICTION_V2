@@ -7,6 +7,8 @@ A machine learning application that predicts UK house prices using CatBoost regr
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.1-orange.svg)](https://github.com/Franklyn-SWE/UK_HOUSE_PRICE_PREDICTION_V2/releases/tag/v1.1)
 
+🌐 **[Live Demo →](https://ukhousepricepredictionv2.streamlit.app/)**
+
 ## 🎯 Performance Metrics (v1.1)
 
 | Metric | v1.1 (Current) | v1.0 (Baseline) | Improvement |
@@ -203,9 +205,24 @@ See [BUG_FIX_SCALE_MISMATCH.md](BUG_FIX_SCALE_MISMATCH.md) for details.
 
 ## 📚 Documentation
 
+- [USER_MANUAL.md](USER_MANUAL.md) - Complete user guide for the app
 - [IMPROVEMENT_GUIDE.md](IMPROVEMENT_GUIDE.md) - 8-step improvement roadmap
 - [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Complete implementation details
 - [COMPARISON.md](COMPARISON.md) - Before/after performance comparison
+- [BUG_FIX_SCALE_MISMATCH.md](BUG_FIX_SCALE_MISMATCH.md) - Scale bug fix documentation
+
+## 🌐 Deployment
+
+### Live Application
+**🚀 Try it now:** [https://ukhousepricepredictionv2.streamlit.app/](https://ukhousepricepredictionv2.streamlit.app/)
+
+Features:
+- ✅ No installation required
+- ✅ Instant predictions
+- ✅ Mobile-friendly interface
+- ✅ Always up-to-date with latest model
+
+### Deploy Your Own
 - [BUG_FIX_SCALE_MISMATCH.md](BUG_FIX_SCALE_MISMATCH.md) - Scale bug fix documentation
 
 ## 🤝 Contributing
