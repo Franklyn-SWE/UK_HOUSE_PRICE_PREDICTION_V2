@@ -56,6 +56,9 @@ Thumbs.db
 # Environment variables file
 .env
 
+# Streamlit secrets folder (do not commit)
+.streamlit/
+
 # Ignore model and large binaries
 
 *.pyd
