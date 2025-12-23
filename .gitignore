@@ -70,5 +70,3 @@ Thumbs.db
 # Model files (too large for GitHub)
 *.pkl
 
-# CatBoost training info
-catboost_info/
