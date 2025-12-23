@@ -56,6 +56,9 @@ Thumbs.db
 # Environment variables file
 .env
 
+# Streamlit secrets folder (do not commit)
+.streamlit/
+
 # Ignore model and large binaries
 
 *.pyd
@@ -67,5 +70,3 @@ Thumbs.db
 # Model files (too large for GitHub)
 *.pkl
 
-# CatBoost training info
-catboost_info/

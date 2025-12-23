@@ -11,19 +11,20 @@ A machine learning application that predicts UK house prices using CatBoost regr
 
 ## 🎯 Performance Metrics (v1.1)
 
-| Metric | v1.1 (Current) | v1.0 (Baseline) | Improvement |
-|--------|----------------|-----------------|-------------|
-| **R² Score** | 0.247 | 0.196 | +26% |
-| **RMSE** | £316,629 | £327,129 | -3.2% |
-| **MAE** | £101,505 | £105,441 | -3.7% |
-| **Median AE** | £53,727 | £55,848 | -3.8% |
-| **MAPE** | 33.8% | 46.1% | -27% |
+| Metric        | v1.1 (Current) | v1.0 (Baseline) | Improvement |
+| ------------- | -------------- | --------------- | ----------- |
+| **R² Score**  | 0.247          | 0.196           | +26%        |
+| **RMSE**      | £316,629       | £327,129        | -3.2%       |
+| **MAE**       | £101,505       | £105,441        | -3.7%       |
+| **Median AE** | £53,727        | £55,848         | -3.8%       |
+| **MAPE**      | 33.8%          | 46.1%           | -27%        |
 
 **Baseline Improvement:** 37.5% better than median baseline prediction
 
 ## ✨ Key Features
 
 ### v1.1 Improvements (Latest)
+
 - ✅ **Target Encoding**: Mean price encoding for town, district, county, and property type
 - ✅ **Postcode Hierarchy**: Extract postcode area and district for better geographic representation
 - ✅ **Enhanced Time Features**: Added `years_since_2015` to capture market trends
@@ -32,6 +33,7 @@ A machine learning application that predicts UK house prices using CatBoost regr
 - ✅ **Balanced Feature Importance**: No single feature dominates (top feature: 23%)
 
 ### Core Features
+
 - 🤖 **CatBoost Regression**: Advanced gradient boosting with categorical feature support
 - 📊 **90,000+ Training Records**: UK house sales data from 2015-2024
 - 🎨 **Interactive UI**: Streamlit and Gradio interfaces
@@ -39,14 +41,15 @@ A machine learning application that predicts UK house prices using CatBoost regr
 - 📈 **Comprehensive Metrics**: R², RMSE, MAE, MAPE, and more
 
 ![UK House Price Prediction App Interface](https://github.com/Franklyn-SWE/UK_HOUSE_PRICE_PREDICTION_APP/blob/main/images/uk_house_pred_app_2.png)  
-*The interface of the UK House Price Prediction application, displaying input features and user-friendly design.*
+_The interface of the UK House Price Prediction application, displaying input features and user-friendly design._
 
 ![Simulation of UK House Price Prediction App](https://github.com/Franklyn-SWE/UK_HOUSE_PRICE_PREDICTION_APP/blob/main/images/uk_house_pred_ui.png)  
-*A simulation showcasing the app's prediction process and output results.*
+_A simulation showcasing the app's prediction process and output results._
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.12+
 - Git
 
@@ -73,6 +76,7 @@ python gradio_app.py
 ## 📊 Model Architecture
 
 ### Feature Engineering Pipeline
+
 ```
 Raw Data
   ↓
@@ -88,6 +92,7 @@ Log-Transformed Predictions → Exponentiated to Original Scale
 ```
 
 ### Top 10 Features by Importance
+
 1. **property_type** (22.93%) - Property classification (D/S/T/F/O)
 2. **town_mean_price** (12.83%) - Average price in town
 3. **property_type_mean_price** (9.93%) - Average price by type
@@ -126,6 +131,7 @@ UK_HOUSE_PRICE_PREDICTION_V2/
 ## 🔧 Technical Details
 
 ### Model Hyperparameters
+
 ```python
 CatBoostRegressor(
     loss_function="RMSE",
@@ -141,30 +147,36 @@ CatBoostRegressor(
 ```
 
 ### Data Split
+
 - **Training:** 2015-2022 (81,179 records)
 - **Validation:** 2023 (6,832 records)
 - **Test:** 2024 (1,633 records)
 
 ### Target Transformation
+
 - Applied `log1p` transformation to handle price skewness
 - Predictions exponentiated back to original scale
 
 ## 📈 Model Performance Analysis
 
 ### What Works Well
+
 - ✅ Property type classification (22.93% importance)
 - ✅ Geographic encoding (town/district/county averages)
 - ✅ Postcode hierarchy features
 - ✅ Balanced feature distribution (no overfitting)
 
 ### Known Limitations
+
 - ⚠️ Limited property characteristic data (no bedroom/bathroom counts)
 - ⚠️ No economic indicators (interest rates, inflation)
 - ⚠️ No geospatial features (distance to amenities)
 - ⚠️ MAPE still high at 33.8% (target: <25%)
 
 ### Future Improvements (Roadmap to R² > 0.50)
+
 See [IMPROVEMENT_GUIDE.md](IMPROVEMENT_GUIDE.md) for detailed recommendations:
+
 - Add property size features (+0.10-0.15 R²)
 - Implement ensemble models (+0.03-0.06 R²)
 - Add geospatial features (+0.05-0.10 R²)
@@ -173,11 +185,13 @@ See [IMPROVEMENT_GUIDE.md](IMPROVEMENT_GUIDE.md) for detailed recommendations:
 ## 🌐 Deployment
 
 ### Live Demo
+
 Access the deployed application at: [Your Streamlit App URL]
 
 ### Deploy Your Own
 
 **Streamlit Community Cloud:**
+
 1. Fork this repository
 2. Go to https://share.streamlit.io/
 3. Connect your GitHub account
@@ -185,13 +199,34 @@ Access the deployed application at: [Your Streamlit App URL]
 5. Click "Deploy" (takes ~8-10 minutes first time)
 
 **Render/Heroku:**
+
 - The `postBuild` script automatically trains the model on deployment
 - Training takes 5-6 minutes but is cached for subsequent restarts
+
+### Docker / Container
+
+You can run the app in Docker using the included `Dockerfile`:
+
+```bash
+# build
+docker build -t uk-house-price-app .
+
+# run (exposes 8501)
+docker run -e OPENAI_API_KEY="sk-..." -p 8501:8501 uk-house-price-app
+```
+
+### Deployment notes
+
+- Store your `OPENAI_API_KEY` in your deployment secret manager (see `DEPLOYMENT_SECRETS.md`).
+- Use the `Procfile` when deploying to platforms that respect it (Heroku, Render).
+- The `postBuild` training step will run if the model artifact is not present; consider pre-building and shipping `full_pipeline_and_model.pkl` to avoid training on first deploy.
 
 ## 🐛 Debugging History
 
 ### v1.1 Bug Fixes
+
 1. **Scale Mismatch Bug** (Fixed)
+
    - Issue: Target encodings in raw price scale vs log-transformed target
    - Solution: Applied `np.log1p()` to all target-encoded features
    - Impact: Fixed extreme feature importance (75% → balanced)
@@ -214,15 +249,18 @@ See [BUG_FIX_SCALE_MISMATCH.md](BUG_FIX_SCALE_MISMATCH.md) for details.
 ## 🌐 Deployment
 
 ### Live Application
+
 **🚀 Try it now:** [https://ukhousepricepredictionv2.streamlit.app/](https://ukhousepricepredictionv2.streamlit.app/)
 
 Features:
+
 - ✅ No installation required
 - ✅ Instant predictions
 - ✅ Mobile-friendly interface
 - ✅ Always up-to-date with latest model
 
 ### Deploy Your Own
+
 - [BUG_FIX_SCALE_MISMATCH.md](BUG_FIX_SCALE_MISMATCH.md) - Scale bug fix documentation
 
 ## 🤝 Contributing
@@ -243,6 +281,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Contact
 
 **Franklyn-SWE**
+
 - GitHub: [@Franklyn-SWE](https://github.com/Franklyn-SWE)
 - Project: [UK_HOUSE_PRICE_PREDICTION_V2](https://github.com/Franklyn-SWE/UK_HOUSE_PRICE_PREDICTION_V2)
 

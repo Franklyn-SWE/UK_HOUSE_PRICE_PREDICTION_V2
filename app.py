@@ -3,6 +3,11 @@ import pandas as pd
 import dill
 import numpy as np
 import sklearn
+import time
+import json
+import hashlib
+from services.explanation_service import ExplanationService
+
 
 # Path to the dataset
 DATA_PATH = "data/UK_House_Price_Prediction_dataset_2015_to_2024.csv"
@@ -46,6 +51,72 @@ def load_pipeline():
 # Load data and pipeline
 df = load_data()
 pipeline = load_pipeline()
+
+# Initialize OpenAI Explanation Service
+@st.cache_resource
+def get_explanation_service():
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY")
+        return ExplanationService(api_key=api_key)
+    except Exception as e:
+        st.warning(f"OpenAI service unavailable: {e}")
+        return None
+
+
+# In-memory explanation rate limiter and cache (per Streamlit session)
+EXPLAIN_LIMIT = 2        # requests
+EXPLAIN_PERIOD = 60 * 60  # seconds (1 hour)
+EXPLAIN_CACHE_TTL = 60 * 60 * 24  # 24 hours
+
+def _init_explain_state():
+    if 'explain_quota' not in st.session_state:
+        st.session_state['explain_quota'] = {'count': 0, 'reset': time.time() + EXPLAIN_PERIOD}
+    if 'explanation_cache' not in st.session_state:
+        st.session_state['explanation_cache'] = {}
+
+def _quota_remaining() -> int:
+    q = st.session_state['explain_quota']
+    now = time.time()
+    if now > q['reset']:
+        q['count'] = 0
+        q['reset'] = now + EXPLAIN_PERIOD
+    return max(0, EXPLAIN_LIMIT - q['count'])
+
+def _consume_quota():
+    st.session_state['explain_quota']['count'] += 1
+
+def _get_cached_explanation(cache_key: str):
+    cache = st.session_state['explanation_cache']
+    entry = cache.get(cache_key)
+    if not entry:
+        return None
+    if time.time() - entry['ts'] > EXPLAIN_CACHE_TTL:
+        # expired
+        del cache[cache_key]
+        return None
+    return entry['value']
+
+def _set_cached_explanation(cache_key: str, value: str):
+    st.session_state['explanation_cache'][cache_key] = {'value': value, 'ts': time.time()}
+
+
+def _safe_rerun():
+    """Try to force a Streamlit rerun in a way that's compatible across versions.
+
+    Prefer `st.experimental_rerun()` when available; otherwise toggle a query
+    parameter which also triggers a rerun.
+    """
+    try:
+        # Newer/older Streamlit versions may or may not expose this helper
+        st.experimental_rerun()
+    except Exception:
+        try:
+            # Fallback: change a query param to force a rerun (assign to `st.query_params`)
+            # `st.experimental_set_query_params` is deprecated; assign to `st.query_params` instead
+            st.query_params = {"_rerun": int(time.time())}
+        except Exception:
+            # Last-resort: do nothing (UI will update on next interaction)
+            return
 
 def add_date_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -222,8 +293,112 @@ if submit:
                     prediction_value = np.expm1(prediction_value)
 
             st.success(f"🏷️ Predicted House Price: **£{prediction_value:,.2f}**")
+            
+            # Store prediction results for explanation
+            st.session_state.last_prediction = {
+                'input_data': input_df.to_dict('records')[0],
+                'predicted_price': prediction_value
+            }
         except Exception as e:
             st.error(f"⚠️ Error during prediction: {e}")
+
+st.divider()
+st.subheader("🧠 AI Explanation (optional)")
+
+# Show quota / usage widget (read live from session_state)
+_init_explain_state()
+quota = st.session_state['explain_quota']
+count_used = int(quota.get('count', 0))
+quota_reset_in = int(quota['reset'] - time.time())
+minutes = quota_reset_in // 60
+seconds = quota_reset_in % 60
+# Use placeholders so we can update the displayed quota in-place after generation
+col_status, col_action = st.columns([3,1])
+quota_area = col_status.empty()
+caption_area = col_status.empty()
+progress_area = col_action.empty()
+quota_area.markdown(f"**Explanation quota:** {count_used}/{EXPLAIN_LIMIT} used")
+caption_area.caption(f"Window resets in {minutes}m {seconds}s")
+pct = count_used / max(EXPLAIN_LIMIT, 1)
+progress_area.progress(min(max(pct, 0.0), 1.0))
+
+if st.button("Explain this prediction"):
+    if 'last_prediction' not in st.session_state:
+        st.warning("⚠️ Please make a prediction first before requesting an explanation.")
+    else:
+        try:
+            explanation_service = get_explanation_service()
+            if explanation_service:
+                with st.spinner("Generating explanation..."):
+                    _init_explain_state()
+                    prediction_info = st.session_state.last_prediction
+
+                    # Preprocess input_data to replace property type codes
+                    input_data_for_expl = prediction_info['input_data'].copy()
+                    property_type_map = {
+                        'D': 'detached house',
+                        'S': 'semi-detached house',
+                        'T': 'terraced house',
+                        'F': 'flat',
+                        'O': 'other property type'
+                    }
+                    if 'property_type' in input_data_for_expl:
+                        code = input_data_for_expl['property_type']
+                        input_data_for_expl['property_type'] = property_type_map.get(code, input_data_for_expl['property_type'])
+
+                    # Build cache key from input and price
+                    cache_key = hashlib.sha256(json.dumps({
+                        'input': input_data_for_expl,
+                        'price': prediction_info['predicted_price']
+                    }, sort_keys=True).encode()).hexdigest()
+
+                    # Check cache
+                    cached = _get_cached_explanation(cache_key)
+                    if cached:
+                        st.session_state['last_explanation'] = cached
+                    else:
+                        # Check quota
+                        remaining = _quota_remaining()
+                        if remaining <= 0:
+                            # Compute time until reset and inform the user
+                            q = st.session_state['explain_quota']
+                            reset_in = int(max(0, q['reset'] - time.time()))
+                            mins = reset_in // 60
+                            secs = reset_in % 60
+                            warning_msg = f"Rate limit reached: you've used all {EXPLAIN_LIMIT} explanations. Please wait {mins}m {secs}s for the quota to reset."
+                            st.warning(warning_msg)
+                            st.session_state['last_explanation'] = warning_msg
+                        else:
+                            _consume_quota()
+                            explanation = explanation_service.generate_explanation(
+                                input_data_for_expl,
+                                prediction_info['predicted_price']
+                            )
+                            _set_cached_explanation(cache_key, explanation)
+                            st.session_state['last_explanation'] = explanation
+                            # Update placeholders so the quota UI reflects the consumed request
+                            try:
+                                # Recompute values
+                                quota = st.session_state['explain_quota']
+                                used = int(quota.get('count', 0))
+                                reset_in = int(quota['reset'] - time.time())
+                                mins = reset_in // 60
+                                secs = reset_in % 60
+                                quota_area.markdown(f"**Explanation quota:** {used}/{EXPLAIN_LIMIT} used")
+                                caption_area.caption(f"Window resets in {mins}m {secs}s")
+                                progress_area.progress(min(max(used / max(EXPLAIN_LIMIT, 1), 0.0), 1.0))
+                            except Exception:
+                                # If placeholders are not available for any reason, skip live update
+                                pass
+                # show whatever explanation is stored (cached or generated)
+                if 'last_explanation' in st.session_state:
+                    st.caption(f"Explanation requests remaining this window: {_quota_remaining()}")
+                    st.write(st.session_state['last_explanation'])
+            else:
+                st.warning("AI explanation service is currently unavailable.")
+        except Exception as e:
+            st.warning("AI explanation is currently unavailable. Please try again later.")
+            st.exception(e)
 
 # Footer with credits and LinkedIn
 st.markdown("---")
